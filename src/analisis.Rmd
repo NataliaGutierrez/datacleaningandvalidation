@@ -1,0 +1,41 @@
+---
+title: "Pràctica 2: Neteja i validació de les dades"
+author: "Natalia Gutierrez Navarro"
+date: '`r format(Sys.Date(),"%e de %B, %Y")`'
+output: 
+  pdf_document:
+    toc: yes
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_libraries, include=FALSE}
+library(knitr)
+```
+# Descripció del dataset
+
+# Objectius de l'anàlisi
+Perquè és important i quina pregunta/problema pretèn respondre
+
+# Integració i selecció de les dades d'interès a analitzar
+
+# Neteja de les dades
+
+## Tractament de zeros o elements buits
+
+## Valors extrems
+
+# Anàlisis de les dades
+
+## Selecció dels grups de dades
+
+## Comprovació de la normalitat i homogeneïtat de la variància
+
+## Proves estadístiques
+
+# Representació dels resultats
+
+# Conclusions
