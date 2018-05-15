@@ -8,8 +8,11 @@ Aquesta pràctica s'engloba dins de l'assignatura Tipologia i Cicle de Vida de l
 
 La pràctica s'ha realitzat de manera individual per Natalia Gutiérrez.
 
-## Fitxers codi font
+## Descripció dels fitxers
 
-* src/main.py: exemple d'ús del scraper. És el que s'ha fet servir per generar el dataset inclòs aqui.
-* src/vaacscraper.py: conté la classe *VAACScraper*, que pot generar un fitxer csv amb la informació dels Volcanic Ash Advisories a partir de l'[arxiu del VAAC de Washington](http://www.ssd.noaa.gov/VAAC/archive.html) compresos en un interval de temps.
-* src/advisory.py: mòdul per extreure els camps requerits d'un VAA Advisory.
+* src/analisis.Rmd: document R markdown amb el que s'ha generat l'informe i que inclou tot el codi R de l'anàlisi dut a terme.
+
+* doc/analisis.pdf: informe de la pràctica.
+
+* data/winequality-red.csv: conjunt de dades d'entrada del que s'ha realitzat l'anàlisi.
+* data/winequality-red_clean.csv: conjunt de dades obtingut després de la neteja.
