@@ -17,10 +17,43 @@ library(knitr)
 ```
 # Descripció del dataset
 
+El conjunt de dades en qüestió té relació amb la variant de vi negre portuguès "Vinho Verde" i ha sigut extret directament de *Kaggle* (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009). Està constituït per 1599 registres amb 12 variables, de les quals 11 fan referència a propietats fisicoquímiques i una a la valoració sensorial de la qualitat. Aquestes són:
+
+http://www.edubcn.cat/rcs_gene/treballs_recerca/2011-2012-08-1-TR.pdf
+https://es.wikipedia.org/wiki/Anh%C3%ADdrido_sulfuroso_en_vinos
+* **fixed.acidity**: és l'acidesa d'un vi relativa a la suma de la quantitat d'àcids fixos que es troben en la seva composició, majoritàriament el tartàric. Una quantitat òptima és de 7.5 gr/litre [gr/l].
+
+* **volatile.acidity**: és la concentracíó d'àcid acètic i derivats [gr/l].
+
+* **citric.acid**: concentració d'àcid cítric. Al vi es troba en quantitats que oscil·len entre 100 i 300 mg/litre  [gr/l].
+
+* **residual.sugar**: principalment glucosa i fructosa que no s'han fermentat. Depenent de la seva quantitat, es categoritza el vi com sec (4-9g/l), semisec (12-18g/l), semidolç (<45 g/l) o dolç (>45g/l). Els valors dins dels rangs depenen de l'acidesa total  [gr/l].
+
+* **chlorides**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats  [gr/l].
+
+* **free.sulfur.dioxide**: és al que es no es troba combinat amb altres components, i per tant, és el que proporciona les propietats antisèptiques [mg/l].
+
+* **total.sulfur.dioxide**: el total d' anhídrid sulfuròs, lliure i combinat, és un conservant afegit . El límit legal és 250mg/l; per vins de qualitat, 200 mg/l [mg/l].
+
+* **density**: en g/cm3.
+
+* **pH**
+
+* **sulphates**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats (el total de totes les sals és 2-4 g/l) [g/l].
+
+* **alcohol**: quantitat d'alcohol, el qual serà etanol principalment. Es mesura en graus i el seu valor indica el volum en que es troba, expressat en percentatge, com en aquest cas.
+
+* **quality**: puntuació mitja proporcionada per catadors dins del rang [0,10].
+
 # Objectius de l'anàlisi
 Perquè és important i quina pregunta/problema pretèn respondre
 
 # Integració i selecció de les dades d'interès a analitzar
+
+```{r}
+idata <- read.csv("../data/winequality-red.csv",header=TRUE)
+```
+
 
 # Neteja de les dades
 
@@ -39,3 +72,6 @@ Perquè és important i quina pregunta/problema pretèn respondre
 # Representació dels resultats
 
 # Conclusions
+
+# Referencies
+
