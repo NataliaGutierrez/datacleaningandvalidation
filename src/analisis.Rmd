@@ -6,6 +6,7 @@ output:
   pdf_document:
     toc: yes
     number_sections: yes
+bibliography: scholar.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r load_libraries, include=FALSE}
 library(knitr)
+library(lattice)
 ```
 # Descripció del dataset
 
@@ -21,19 +23,20 @@ El conjunt de dades en qüestió té relació amb la variant de vi negre portugu
 
 http://www.edubcn.cat/rcs_gene/treballs_recerca/2011-2012-08-1-TR.pdf
 https://es.wikipedia.org/wiki/Anh%C3%ADdrido_sulfuroso_en_vinos
-* **fixed.acidity**: és l'acidesa d'un vi relativa a la suma de la quantitat d'àcids fixos que es troben en la seva composició, majoritàriament el tartàric. Una quantitat òptima és de 7.5 gr/litre [gr/l].
+https://inta.gob.ar/sites/default/files/script-tmp-2__los_estmulos_cidos_del_vino.pdf
+* **fixed acidity**: és l'acidesa d'un vi relativa a la suma de la quantitat d'àcids fixos que es troben en la seva composició, majoritàriament el tartàric. Una quantitat òptima és de 7.5 gr/litre [gr/l].
 
-* **volatile.acidity**: és la concentracíó d'àcid acètic i derivats [gr/l].
+* **volatile acidity**: és la concentracíó d'àcid acètic i derivats [gr/l].
 
-* **citric.acid**: concentració d'àcid cítric. Al vi es troba en quantitats que oscil·len entre 100 i 300 mg/litre  [gr/l].
+* **citric acid**: concentració d'àcid cítric. Al vi es troba en quantitats que normalment oscil·len entre 100 i 300 mg/litre  [gr/l].
 
-* **residual.sugar**: principalment glucosa i fructosa que no s'han fermentat. Depenent de la seva quantitat, es categoritza el vi com sec (4-9g/l), semisec (12-18g/l), semidolç (<45 g/l) o dolç (>45g/l). Els valors dins dels rangs depenen de l'acidesa total  [gr/l].
+* **residual sugar**: principalment glucosa i fructosa que no s'han fermentat. Depenent de la seva quantitat, es categoritza el vi com sec (4-9g/l), semisec (12-18g/l), semidolç (<45 g/l) o dolç (>45g/l). Els valors dins dels rangs depenen de l'acidesa total  [gr/l].
 
 * **chlorides**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats  [gr/l].
 
-* **free.sulfur.dioxide**: és al que es no es troba combinat amb altres components, i per tant, és el que proporciona les propietats antisèptiques [mg/l].
+* **free sulfur dioxide**: és al que es no es troba combinat amb altres components, i per tant, és el que proporciona les propietats antisèptiques [mg/l].
 
-* **total.sulfur.dioxide**: el total d' anhídrid sulfuròs, lliure i combinat, és un conservant afegit . El límit legal és 250mg/l; per vins de qualitat, 200 mg/l [mg/l].
+* **total sulfur dioxide**: el total d' anhídrid sulfuròs, lliure i combinat, és un conservant afegit . El límit legal és 250mg/l; per vins de qualitat, 200 mg/l [mg/l].
 
 * **density**: en g/cm3.
 
@@ -50,20 +53,43 @@ Perquè és important i quina pregunta/problema pretèn respondre
 
 # Integració i selecció de les dades d'interès a analitzar
 
+Les dades que disposem estan ja integrades en un únic fitxer en format *CSV*. Per procedir amb la neteja i anàlisi de les dades, les carreguem amb la funció **read.csv** de manera que les tindrem totes elles incloses en un dataframe.
+
 ```{r}
 idata <- read.csv("../data/winequality-red.csv",header=TRUE)
+summary(idata)
 ```
 
+Cridant la funció **summary** per obtenir un resum de les columnes que constitueixen el dataframe, podem observar totes les variables que esperavem tenir al conjunt de dades: 11 variables quantitatives indicant propietats fisicoquímiques de les observacions de la mostra, i una altra variable quantitativa amb la valoració sensorial. A més a més, comprovem que totes elles estan identificades adequadament amb els noms assignats.
+
+Excepte *quality*, que com hem vist és la variable objectiu en el nostre estudi, la resta són atributs que caracteritzen diferents aspected dels vins avaluats, i a priori tots ells són susceptibles a ser útils en l'anàlisi. Per altra banda, el tamany de la mostra (1599 observacions) no és desmesurat i es podrà procesar sense dificultats. Així que inicialment seleccionem totes les dades que tenim ja carregades en el dataframe.
 
 # Neteja de les dades
 
 ## Tractament de zeros o elements buits
+
+```{r}
+sapply(idata, class)
+```
+
+Podem comprobar que totes les variables carregades del *CSV* s'han reconegut com a numèriques (o integer). Això vol dir que no hi ha cap valor de tipus caràcter que s'hagi establert com a centinela per indicar element buit, perque llavors s'hauria fixat el tipus de dades com factor. També podriem haver arribat a aquesta mateixa conclusió directament observant el resum que vam mostrar anteriorment: en totes les variables es mostra un resum format per mitja i el sumari dels cinc números de Tukey, propi de les dades del tipus numèric. 
+
+Per altra banda, si els elements buits s'haguèssin indicat amb espais buits ("") en el fitxer *CSV*, s'haurien traduït com "NA" (valors perduts) i aquests estarien registrats en el sumari anterior. Tampoc és el cas.
+
+Per últim, hi ha la possibilitat que s'haguès fixat com a centinela el zero o algun valor sense sentit com podria ser en aquests atributs un número negatiu. En el sumari observem que els rangs dinàmics de les variables són inicialment coherents i només *citric.acid* conté zeros. A continuació mostrem l'histograma d'aquesta variable, on podem comprovar que aquest zeros no semblen ser valors extrems. Tanmateix, és factible que un vi tingui una concentració d'àcid cítric de 0 g/l [@Catania:2007], així que descartem que aquests zeros signifiquin ausència de valor.
+
+```{r}
+histogram(idata$citric.acid,nint=40,col='forestgreen')
+```
+
 
 ## Valors extrems
 
 # Anàlisis de les dades
 
 ## Selecció dels grups de dades
+
+(Formar conjunts de test i prova)
 
 ## Comprovació de la normalitat i homogeneïtat de la variància
 
@@ -73,5 +99,5 @@ idata <- read.csv("../data/winequality-red.csv",header=TRUE)
 
 # Conclusions
 
-# Referencies
+# References
 
