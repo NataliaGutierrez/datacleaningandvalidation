@@ -22,8 +22,11 @@ library(lattice)
 El conjunt de dades en qüestió té relació amb la variant de vi negre portuguès "Vinho Verde" i ha sigut extret directament de *Kaggle* (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009). Està constituït per 1599 registres amb 12 variables, de les quals 11 fan referència a propietats fisicoquímiques i una a la valoració sensorial de la qualitat. Aquestes són:
 
 http://www.edubcn.cat/rcs_gene/treballs_recerca/2011-2012-08-1-TR.pdf
+
 https://es.wikipedia.org/wiki/Anh%C3%ADdrido_sulfuroso_en_vinos
+
 https://inta.gob.ar/sites/default/files/script-tmp-2__los_estmulos_cidos_del_vino.pdf
+
 * **fixed acidity**: és l'acidesa d'un vi relativa a la suma de la quantitat d'àcids fixos que es troben en la seva composició, majoritàriament el tartàric. Una quantitat òptima és de 7.5 gr/litre [gr/l].
 
 * **volatile acidity**: és la concentracíó d'àcid acètic i derivats [gr/l].
@@ -32,7 +35,7 @@ https://inta.gob.ar/sites/default/files/script-tmp-2__los_estmulos_cidos_del_vin
 
 * **residual sugar**: principalment glucosa i fructosa que no s'han fermentat. Depenent de la seva quantitat, es categoritza el vi com sec (4-9g/l), semisec (12-18g/l), semidolç (<45 g/l) o dolç (>45g/l). Els valors dins dels rangs depenen de l'acidesa total  [gr/l].
 
-* **chlorides**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats  [gr/l].
+* **chlorides**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats (el total de totes les sals és 2-4 g/l) [g/l].
 
 * **free sulfur dioxide**: és al que es no es troba combinat amb altres components, i per tant, és el que proporciona les propietats antisèptiques [mg/l].
 
@@ -42,14 +45,19 @@ https://inta.gob.ar/sites/default/files/script-tmp-2__los_estmulos_cidos_del_vin
 
 * **pH**
 
-* **sulphates**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats (el total de totes les sals és 2-4 g/l) [g/l].
+* **sulphates**: concentració de sulfats, algunes de les sals minerals que hi han al vi en petites quantitats (el total de totes les sals és 2-4 g/l) [g/l].
 
 * **alcohol**: quantitat d'alcohol, el qual serà etanol principalment. Es mesura en graus i el seu valor indica el volum en que es troba, expressat en percentatge, com en aquest cas.
 
 * **quality**: puntuació mitja proporcionada per catadors dins del rang [0,10].
 
 # Objectius de l'anàlisi
-Perquè és important i quina pregunta/problema pretèn respondre
+
+A partir del conjunt de dades disponible, en aquest anàlisi es planteja la possibilitat de poder predir la qualitat del vi des del punt de vista sensorial fent servir les seves propietats fisicoquímiques.
+
+Amb un model d'aquestes caracterítiques es podria tenir una valoració objectiva per conèixer la qualitat sense haver de recórrer a catadors. Tanmateix, es tindria informació de com modificar les seves propietats per millorar el vi. 
+
+Aquest conjunt de dades constitueix una mostra de vins de denominació d'origen *Vinho Verde*. Per tant, de totes les observacions s'esperen una tendència semblant en les seves característiques; si més no, podem assumir que la qualitat s'haurà avaluat considerant els mateixos aspectes, propietats que s'esperaria trobar en el tast. Així doncs, la mostra pot ser una bona candidata per construir un model de predicció.
 
 # Integració i selecció de les dades d'interès a analitzar
 
@@ -72,7 +80,7 @@ Excepte *quality*, que com hem vist és la variable objectiu en el nostre estudi
 sapply(idata, class)
 ```
 
-Podem comprobar que totes les variables carregades del *CSV* s'han reconegut com a numèriques (o integer). Això vol dir que no hi ha cap valor de tipus caràcter que s'hagi establert com a centinela per indicar element buit, perque llavors s'hauria fixat el tipus de dades com factor. També podriem haver arribat a aquesta mateixa conclusió directament observant el resum que vam mostrar anteriorment: en totes les variables es mostra un resum format per mitja i el sumari dels cinc números de Tukey, propi de les dades del tipus numèric. 
+Podem comprovar que totes les variables carregades del *CSV* s'han reconegut com a numèriques (o integer). Això vol dir que no hi ha cap valor de tipus caràcter que s'hagi establert com a centinela per indicar element buit, perque llavors s'hauria fixat el tipus de dades com factor. També podriem haver arribat a aquesta mateixa conclusió directament observant el resum que vam mostrar anteriorment: en totes les variables es mostra un resum format per mitja i el sumari dels cinc números de Tukey, propi de les dades del tipus numèric. 
 
 Per altra banda, si els elements buits s'haguèssin indicat amb espais buits ("") en el fitxer *CSV*, s'haurien traduït com "NA" (valors perduts) i aquests estarien registrats en el sumari anterior. Tampoc és el cas.
 
@@ -85,6 +93,60 @@ histogram(idata$citric.acid,nint=40,col='forestgreen')
 
 ## Valors extrems
 
+En el sumari mostrat anteriorment es pot apreciar una distància entre el tercer quartil i el màxim més gran que en la resta de mesures en la majoria de variables. Això ja ens indica la presència de valors extrems o *outliers* en les nostres dades.
+
+Basant-nos en el mètode de Turkey, podem identificar possibles outliers en el diagrama de caixa o directament amb la funció `r "boxplot.stats"` de R.
+
+**fixed acidity**
+
+```{r}
+boxplot.stats(idata$fixed.acidity)$out
+```
+Resulta que 49 valors són detectats com valors atípics. Però si representen la distribució de la variable observem que té una cua que s'extèn cap a aquests valors de manera que no semblen ser incongruents amb la resta de valors. 
+
+```{r}
+histogram(idata$fixed.acidity,nint=30,col='forestgreen')
+```
+
+Considerem que són valors atípics propis de la distribució.
+
+**volatile acidity**
+
+```{r}
+boxplot.stats(idata$volatile.acidity)$out
+boxplot(idata$volatile.acidity~idata$quality,col="forestgreen",cex.axis=0.7)
+histogram(idata$volatile.acidity,nint=30,col='forestgreen')
+```
+
+**citric acid**
+
+```{r}
+boxplot.stats(idata$citric.acid)$out
+```
+
+**residual sugar**
+
+
+```{r}
+length(boxplot.stats(idata$residual.sugar)$out)
+histogram(idata$residual.sugar,nint=30,col='forestgreen')
+#boxplot(idata$residual.sugar~idata$quality,col="forestgreen",cex.axis=0.7)
+```
+
+En el cas de *residual sugar* ens trobem inicialment amb un número gens despreciable de outliers: 155. En l'histograma es veuen com valors molt allunyats de la resta de observacions, i per tant són candidats a considerar-los valors atípics contaminants i ser tractats com a tal. Però tal com vam descriure en el primer apartat, el vi pot tenir concentracions de sucre molt divers, trobant concentracions fins a 18 g/l pel tipus semisec. És a dir, els valors que tenim aqui com candidats a valors extrems il·legítims són valors totalment pausibles. Que apareguin en la distribució com outliers pot ser degut a que aquesta mostra pertany a la població de vins d'una denominació d'origen específica, de la qual probablement la producció s'especialitza més en vins més secs. LLavors concluïm que aquests valors atípics són propis de la distribució de la variable.
+
+**chlorides**
+
+```{r}
+boxplot.stats(idata$chlorides)$out
+histogram(idata$chlorides,nint=30,col='forestgreen')
+```
+
+https://www.scribd.com/doc/18175580/Analisis-de-Vinos
+
+
+
+
 # Anàlisis de les dades
 
 ## Selecció dels grups de dades
@@ -93,7 +155,13 @@ histogram(idata$citric.acid,nint=40,col='forestgreen')
 
 ## Comprovació de la normalitat i homogeneïtat de la variància
 
+http://www.dummies.com/programming/r/how-to-test-data-normality-in-a-formal-way-in-r/
+
+http://www.cookbook-r.com/Statistical_analysis/Homogeneity_of_variance/
+
 ## Proves estadístiques
+
+(Regressió lineal multivariant)
 
 # Representació dels resultats
 
