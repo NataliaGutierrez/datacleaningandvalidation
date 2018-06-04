@@ -16,16 +16,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load_libraries, include=FALSE}
 library(knitr)
 library(lattice)
+library(VIM)
 ```
+
 # Descripció del dataset
 
-El conjunt de dades en qüestió té relació amb la variant de vi negre portuguès "Vinho Verde" i ha sigut extret directament de *Kaggle* (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009). Està constituït per 1599 registres amb 12 variables, de les quals 11 fan referència a propietats fisicoquímiques i una a la valoració sensorial de la qualitat. Aquestes són:
-
-http://www.edubcn.cat/rcs_gene/treballs_recerca/2011-2012-08-1-TR.pdf
-
-https://es.wikipedia.org/wiki/Anh%C3%ADdrido_sulfuroso_en_vinos
-
-https://inta.gob.ar/sites/default/files/script-tmp-2__los_estmulos_cidos_del_vino.pdf
+El conjunt de dades en qüestió té relació amb la variant de vi negre portuguès "Vinho Verde" i ha sigut extret directament de *Kaggle* (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009). Està constituït per 1599 registres amb 12 variables, de les quals 11 fan referència a propietats fisicoquímiques i una a la valoració sensorial de la qualitat. Aquestes són [@Cortez:2009][@Atenea:2012]:
 
 * **fixed acidity**: és l'acidesa d'un vi relativa a la suma de la quantitat d'àcids fixos que es troben en la seva composició, majoritàriament el tartàric. Una quantitat òptima és de 7.5 gr/litre [gr/l].
 
@@ -37,13 +33,13 @@ https://inta.gob.ar/sites/default/files/script-tmp-2__los_estmulos_cidos_del_vin
 
 * **chlorides**: concentració de clorurs, algunes de les sals minerals que hi han al vi en petites quantitats (el total de totes les sals és 2-4 g/l) [g/l].
 
-* **free sulfur dioxide**: és al que es no es troba combinat amb altres components, i per tant, és el que proporciona les propietats antisèptiques [mg/l].
+* **free sulfur dioxide**: anhídrid sulfuròs que no es troba combinat amb altres components, i per tant, és el que proporciona les propietats antisèptiques [mg/l].
 
 * **total sulfur dioxide**: el total d' anhídrid sulfuròs, lliure i combinat, és un conservant afegit . El límit legal és 250mg/l; per vins de qualitat, 200 mg/l [mg/l].
 
 * **density**: en g/cm3.
 
-* **pH**
+* **pH**: mesura la concentració d'ions H+.
 
 * **sulphates**: concentració de sulfats, algunes de les sals minerals que hi han al vi en petites quantitats (el total de totes les sals és 2-4 g/l) [g/l].
 
@@ -61,16 +57,16 @@ Aquest conjunt de dades constitueix una mostra de vins de denominació d'origen 
 
 # Integració i selecció de les dades d'interès a analitzar
 
-Les dades que disposem estan ja integrades en un únic fitxer en format *CSV*. Per procedir amb la neteja i anàlisi de les dades, les carreguem amb la funció **read.csv** de manera que les tindrem totes elles incloses en un dataframe.
+Les dades que disposem estan ja integrades en un únic fitxer en format *CSV*. Per procedir amb la neteja i anàlisi de les dades, les carreguem amb la funció `read.csv` de manera que les tindrem totes elles incloses en un dataframe.
 
 ```{r}
 idata <- read.csv("../data/winequality-red.csv",header=TRUE)
 summary(idata)
 ```
 
-Cridant la funció **summary** per obtenir un resum de les columnes que constitueixen el dataframe, podem observar totes les variables que esperavem tenir al conjunt de dades: 11 variables quantitatives indicant propietats fisicoquímiques de les observacions de la mostra, i una altra variable quantitativa amb la valoració sensorial. A més a més, comprovem que totes elles estan identificades adequadament amb els noms assignats.
+Cridant la funció `summary` per obtenir un resum de les columnes que constitueixen el dataframe, podem observar totes les variables que esperavem tenir al conjunt de dades: 11 variables quantitatives indicant propietats fisicoquímiques de les observacions de la mostra, i una altra variable quantitativa amb la valoració sensorial. A més a més, comprovem que totes elles estan identificades adequadament amb els noms assignats.
 
-Excepte *quality*, que com hem vist és la variable objectiu en el nostre estudi, la resta són atributs que caracteritzen diferents aspected dels vins avaluats, i a priori tots ells són susceptibles a ser útils en l'anàlisi. Per altra banda, el tamany de la mostra (1599 observacions) no és desmesurat i es podrà procesar sense dificultats. Així que inicialment seleccionem totes les dades que tenim ja carregades en el dataframe.
+Excepte *quality*, que com hem vist és la variable objectiu en el nostre estudi, la resta són atributs que caracteritzen diferents aspectes dels vins avaluats, i a priori tots ells són susceptibles a ser útils en l'anàlisi. Per altra banda, el tamany de la mostra (1599 observacions) no és desmesurat i es podrà procesar sense dificultats. Així que inicialment seleccionem totes les dades que tenim ja carregades en el dataframe.
 
 # Neteja de les dades
 
@@ -95,7 +91,7 @@ histogram(idata$citric.acid,nint=40,col='forestgreen')
 
 En el sumari mostrat anteriorment es pot apreciar una distància entre el tercer quartil i el màxim més gran que en la resta de mesures en la majoria de variables. Això ja ens indica la presència de valors extrems o *outliers* en les nostres dades.
 
-Basant-nos en el mètode de Turkey, podem identificar possibles outliers en el diagrama de caixa o directament amb la funció `r "boxplot.stats"` de R.
+Basant-nos en el mètode de Turkey, podem identificar possibles outliers en el diagrama de caixa o directament amb la funció `r "boxplot.stats"` de R. A continuació analitzem en aquest aspecte cadascuna de les variables quantitatives.
 
 **fixed acidity**
 
@@ -113,10 +109,12 @@ Considerem que són valors atípics propis de la distribució.
 **volatile acidity**
 
 ```{r}
-boxplot.stats(idata$volatile.acidity)$out
-boxplot(idata$volatile.acidity~idata$quality,col="forestgreen",cex.axis=0.7)
+length(boxplot.stats(idata$volatile.acidity)$out)
+#boxplot(idata$volatile.acidity~idata$quality,col="forestgreen",cex.axis=0.7)
 histogram(idata$volatile.acidity,nint=30,col='forestgreen')
 ```
+
+Anàlogament al cas de l'acidesa fixa, considerem aquests outliers propis de la distribució.
 
 **citric acid**
 
@@ -124,32 +122,122 @@ histogram(idata$volatile.acidity,nint=30,col='forestgreen')
 boxplot.stats(idata$citric.acid)$out
 ```
 
-**residual sugar**
+En l'histograma representat en l'apartat de *Tractament de zeros* comprovem que la distribució es concentra en els valors esperats per la concentració d'àcid cítric inclosos en el rang [0.1,0.3] gr/l. Tanmateix es veu una cua que s'allarga cap a valors més alts de manera natural, però el valor detectat com outlier no s'oberva integrat en aquesta cua. Podria ser un valor atípic propi de la dsitribució, però la seva localització aïllada ens fa sospitar que no sigui legítim. El marquem com valor perdut per ser tractat posteriorment.
 
+```{r}
+idata$citric.acid[which(idata$citric.acid==max(idata$citric.acid))] <- NA
+```
+
+**residual sugar**
 
 ```{r}
 length(boxplot.stats(idata$residual.sugar)$out)
 histogram(idata$residual.sugar,nint=30,col='forestgreen')
-#boxplot(idata$residual.sugar~idata$quality,col="forestgreen",cex.axis=0.7)
 ```
 
-En el cas de *residual sugar* ens trobem inicialment amb un número gens despreciable de outliers: 155. En l'histograma es veuen com valors molt allunyats de la resta de observacions, i per tant són candidats a considerar-los valors atípics contaminants i ser tractats com a tal. Però tal com vam descriure en el primer apartat, el vi pot tenir concentracions de sucre molt divers, trobant concentracions fins a 18 g/l pel tipus semisec. És a dir, els valors que tenim aqui com candidats a valors extrems il·legítims són valors totalment pausibles. Que apareguin en la distribució com outliers pot ser degut a que aquesta mostra pertany a la població de vins d'una denominació d'origen específica, de la qual probablement la producció s'especialitza més en vins més secs. LLavors concluïm que aquests valors atípics són propis de la distribució de la variable.
+En el cas de *residual sugar* ens trobem inicialment amb un número gens despreciable d'outliers: 155. En l'histograma es veuen com valors molt allunyats de la resta de observacions, i per tant són candidats a considerar-los valors atípics contaminants i ser tractats com a tal. Però tal com vam descriure en el primer apartat, el vi pot tenir concentracions de sucre molt divers, trobant concentracions fins a 18 g/l pel tipus semisec. És a dir, els valors que tenim aqui com candidats a valors extrems il·legítims són valors totalment pausibles. Que apareguin en la distribució com outliers pot ser degut a que aquesta mostra pertany a la població de vins d'una denominació d'origen específica, de la qual probablement la producció s'especialitza més en vins més secs. Llavors concluïm que aquests valors atípics són propis de la distribució de la variable.
 
 **chlorides**
 
 ```{r}
-boxplot.stats(idata$chlorides)$out
+length(boxplot.stats(idata$chlorides)$out)
 histogram(idata$chlorides,nint=30,col='forestgreen')
 ```
 
-https://www.scribd.com/doc/18175580/Analisis-de-Vinos
+En el cas dels *chlorides* també tenim un número important d'outliers: 112. Observem que aquests estam molt dispersats arribant a un valor de ~0.6 gr/l, però hi ha certa continuïtat en la distribució. Tanmateix, els valors de concentració de clorurs en el vi poden ser generalment fins a valors de 0.5 g/l, arribant a valors de 1 g/l per vinyes situades ubicades a prop del mar [@Enrique]. La mostra que estem analitzant inclou vins de D.O. "Vinho Verde", i aquests es cultiven en una regió amb costa [@wikiVinhoVerde]; per tant, pot haver-hi perfectament en la mostra individus amb aquestes concentracions. 
+
+**free sulfur dioxide**
+
+```{r}
+boxplot.stats(idata$free.sulfur.dioxide)$out
+histogram(idata$free.sulfur.dioxide,nint=30,col='forestgreen')
+```
+
+En la variable *free sulfur dioxide* es detecten `r length(boxplot.stats(idata$free.sulfur.dioxide)$out)` outliers. En l'histograma veiem que la gran majoria d'aquests segueixen la cua allargada de la distribució, però hi ha un petit conjunt aïllat en els valors més alts. Procedim a considerar-los com valors atípcs contaminants i els marquem com valors perduts.
+
+```{r}
+idata$free.sulfur.dioxide[which(idata$free.sulfur.dioxide > 60)] <- NA
+```
 
 
+**total sulfur dioxide**
+
+```{r}
+boxplot.stats(idata$total.sulfur.dioxide)$out
+histogram(idata$total.sulfur.dioxide,nint=30,col='forestgreen')
+```
+
+La gran majoria d'outliers detectats es poden considerar valors propis de la distribució que tenim tal com s'observa en l'histograma. Però hi ha alguns valors allunyats els quals sobre passen el límit que es considera legal en concentracions d'anhídrid sulfuròs. Això ens fa pensar que es tractin de valors atípics contaminants, i per tant, els marquem com valors perduts.
+
+```{r}
+idata$total.sulfur.dioxide[which(idata$total.sulfur.dioxide > 200)] <- NA
+```
+
+**density**
+
+```{r}
+boxplot.stats(idata$density)$out
+histogram(idata$density,nint=30,col='forestgreen')
+```
+
+Malgrat que inicialment es detecten outliers, amb la visualització de l'histograma podem considerar que aquests formen part de la distribució coherentment i els considerarem legítims. No prendrem mesures per corregir-los.
+
+**pH**
+
+```{r}
+boxplot.stats(idata$pH)$out
+histogram(idata$pH,nint=30,col='forestgreen')
+```
+
+En el cas de *pH*, del conjunt d'outliers podriem sospitar dels localitzats a valors més grans, però són valors que es troben normalment en el vi [@Enrique], així que suposarem que són tots legítims.
+
+**sulphates**
+
+```{r}
+boxplot.stats(idata$sulphates)$out
+histogram(idata$sulphates,nint=30,col='forestgreen')
+```
+
+*sulphates* presenta una cua en la distribució que s'allunya a valors alts. Els primers valors mostren continuïtat en l'histograma, però hi ha alguns >1.5 que són sospitosos. La quantitat de sulfats en vins normals és de l'ordre de 0.6-0.7 g/l, arribant a ser 2 g/l. en vins envellits [@Enrique]. Però els de D.O. *Vinho Verde* es caracteritzen per ser joves [@wikiVinhoVerde]; per tant, es confirma que aquests valors són probablement contaminants. Considerarem valors perduts a partir de 1.5.
+
+```{r}
+idata$sulphates[which(idata$sulphates > 1.5)] <- NA
+```
+
+**alcohol**
+
+```{r}
+length(boxplot.stats(idata$alcohol)$out)
+histogram(idata$alcohol,nint=30,col='forestgreen')
+```
+
+**quality**
+
+Finalment, pel que fa a la variable de qualitat, tots els valors estan dins del rang com vam veure en el sumari de l'apartat d' *Integració*, així que no hi ha motius per considerar que hi hagin valors atípics.
+
+```{r}
+nacount<-apply(idata, 1, function(x) sum(is.na(x)))
+sum(nacount)
+max(nacount)
+```
+
+Una vegada determinats els valors atípics contaminants, i per tant marcats con valors perduts, hem de tractar-los. Les opcions que tenim són:
+
+* Descartar les observacions que tenen algun valor perdut. En el nostre cas, tenim un total de 15 registres afectats, amb un màxim de 2 NA per registre. Malgrat que només suposaria <1% de les dades, perderiem informació ja que els registres tenen molt pocs valors perduts. 
+
+* Fer servir un mètode d'imputació de valors. Podem assignar valors de tendència central de la variable en qüestió, dins de la mostra o considerant només les observacions de la mateixa categoria (qualificació de qualitat). O bé, fer servir que mesuri similitud entre observacions de la mostra, que degut als objectius fixats en l'anàlisi i les característiques de les dades, es pot considerar més adient.
+
+Decidim aplicar aquesta segona opció, i per aquesta finalitat farem servir la imputació kNN. Fem servir la comanda `kNN` de la llibreria `VIM`, amb els paràmetres per defecte.
+
+```{r}
+odata<-kNN(idata,imp_var=FALSE)
+```
 
 
 # Anàlisis de les dades
 
 ## Selecció dels grups de dades
+
 
 (Formar conjunts de test i prova)
 
@@ -158,6 +246,10 @@ https://www.scribd.com/doc/18175580/Analisis-de-Vinos
 http://www.dummies.com/programming/r/how-to-test-data-normality-in-a-formal-way-in-r/
 
 http://www.cookbook-r.com/Statistical_analysis/Homogeneity_of_variance/
+
+## Correlació entre variables
+
+## Diferències significatives en les variables segons la qualitat del vi
 
 ## Proves estadístiques
 
