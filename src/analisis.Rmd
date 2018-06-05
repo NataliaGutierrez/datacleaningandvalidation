@@ -259,12 +259,17 @@ tdata<-odata[-in_train,]
 Per cada variable, comprovem la seva condició de normalitat mitjançant el test de Shapiro-Wilk [@Lopez:2015].
 
 ```{r}
+# Funció per avaluar si una variable segueix distribució
+# normal
 isnormal<-function(x){
+  # nivell de significació
   alpha<-0.05
+  # Llancem el test
   res<-shapiro.test(x)
+  # Avaluem el p-valor
   return (res$p.value >= alpha)
 }
-
+# Apliquem el test de normalitat a cadascuna de les variables
 apply(edata,2,isnormal)
 ```
 
@@ -272,23 +277,50 @@ Ens trobem que cap de les variables segueix una distribució normal, com ja hav�
 
 A continuació, comprovem l'homogeneïtat de les variàncies entre els diferents grups que tenim definits per la qualificació que han rebut les observacions. Per la falta de normalitat que hem observat, aplicarem el test de Fligner-Killeen [@cookbookr].
 
-Abans de procedir, un detall. La variable *quality* és una variable numèrica definida entre [0,10], però hem observat que en la nostra mostra prèn només valors discrets. És possible tractar-la com una variable qualitativa amb un numero finit de categories sense haver de fer cap transformació, de manera que és útil per fer alguns dels anàlisis que posteriorment descriurem. Tanmateix, recuperarem la seva representació numèrica per fer la regressió. 
+Abans de procedir, un detall. La variable *quality* és una variable numèrica definida entre [0,10], però hem observat que en la nostra mostra prèn només valors discrets. És possible tractar-la com una variable qualitativa amb un numero finit de categories sense haver de fer cap transformació, de manera que és útil per fer alguns dels anàlisis que posteriorment descriurem. Tanmateix, recuperarem la seva representació numèrica per fer la regressió.
+
+En el test en qüestió es planteja per cadascuna de les variables la hipòtesi nul·la $H_0$: homogeneïtat de variàncies contra la hipòtesi alternativa $H_A$: heterogeneïtat de variàncies. Si obtenim un p-valor més gran que el nivell de significació que imposem de 0.05, acceptem la hipòtesi nul·la, i per tant, podem concloure que hi ha homogeneïtat de variàncies. En canvi, si surt un valor més petit, la rebutgem a favor de la hipòtesi alternativa i concluïm que hi ha heterogeneïtat de variàncies.
 
 ```{r}
+# Transformem la variable "quality" en factor
 edata$quality<-factor(as.character(edata$quality))
 
-a<-fligner.test( alcohol ~ quality, data=edata )
-homoscedasticitat<-function(x){
+# Funció per testejar si hi ha homogeneïtat de variables en un 
+# dataset segons una variable categòrica
+homoscedasticitat<-function(data,mifac){
+  # nivell de significació
   alpha<-0.05
-  res<-fligner.test(x)
-  return (res$p.value >= alpha)
+  results<-list()
+  # Loop de variables
+  for (field in colnames(data)){
+    # Saltem la variable categòrica
+    if (field ==mifac)
+      next
+    # Construïm la fòrmula que necessita la comanda 
+    fmla<-as.formula(paste(field,"~",mifac))
+    # Apliquem el test
+    res<-fligner.test(fmla,data=edata)
+    # Avaluem el p-valor resultant
+    results[field]<-(res$p.value >= alpha)
+  }
+  return (results)
 }
+# Avaluem el nostre conjunt de dades
+res<-homoscedasticitat(edata,"quality")
+# Mostrem les variable que sí presenten homogeneïtat
+names(which(res==TRUE))
 ```
 
-
-http://www.dummies.com/programming/r/how-to-test-data-normality-in-a-formal-way-in-r/
+Obtenim que només 4 variables presenten homogeneïtat de variància respecte *quality*.
 
 ## Correlació entre variables
+
+Ja que les variables no presenten normalitat, fem servir el mètode no paramètric de Spearman [@Dalgaard].
+
+```{r}
+
+```
+http://proven-inconclusive.com/blog/spearman_correlation_heat_map_with_correlation_coefficient_and_significance_in_r.html
 
 ## Diferències significatives en les variables segons la qualitat del vi
 
