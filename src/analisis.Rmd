@@ -49,7 +49,7 @@ El conjunt de dades en qüestió té relació amb la variant de vi negre portugu
 
 # Objectius de l'anàlisi
 
-A partir del conjunt de dades disponible, en aquest anàlisi es planteja la possibilitat de poder predir la qualitat del vi des del punt de vista sensorial fent servir les seves propietats fisicoquímiques.
+A partir del conjunt de dades disponible, en aquesta anàlisi es planteja la possibilitat de poder predir la qualitat del vi des del punt de vista sensorial fent servir les seves propietats fisicoquímiques.
 
 Amb un model d'aquestes caracterítiques es podria tenir una valoració objectiva per conèixer la qualitat sense haver de recórrer a catadors. Tanmateix, es tindria informació de com modificar les seves propietats per millorar el vi. 
 
@@ -211,9 +211,12 @@ length(boxplot.stats(idata$alcohol)$out)
 histogram(idata$alcohol,nint=30,col='forestgreen')
 ```
 
+Es podrien considerar els últims valors de la cua que presenta la distribucíó de *alcohol* com outliers. Però el vi pot presentar ua graduació fins del 15%, així que assumirem que són outliers legítims.
+
 **quality**
 
 Finalment, pel que fa a la variable de qualitat, tots els valors estan dins del rang com vam veure en el sumari de l'apartat d' *Integració*, així que no hi ha motius per considerar que hi hagin valors atípics.
+
 
 ```{r}
 nacount<-apply(idata, 1, function(x) sum(is.na(x)))
@@ -238,14 +241,52 @@ odata<-kNN(idata,imp_var=FALSE)
 
 ## Selecció dels grups de dades
 
+Inicialment, seleccionem totes les variables per la nostra anàlisis de dades. No obstant, pot ser que en alguna fase de l'anàlisi es descarti alguna d'elles per no ser significativa per al model de predicció final.
 
-(Formar conjunts de test i prova)
+Per altra banda, formem dos conjunts de dades: un conjunt d'entrenament per construir el model de regressió, i un conjunt de prova per avaluar-lo. Considerem reservar el 20% de les dades per la fase d'avaluació i fem una extracció aleatoria per obtenir unes mostres representatives de la població mantenint les distribucions de les variables.
+
+```{r}
+set.seed(2018)
+in_train <- sample(1:nrow(odata), size = round(nrow(odata)*0.8))
+
+edata<-odata[in_train,]
+tdata<-odata[-in_train,]
+```
+
 
 ## Comprovació de la normalitat i homogeneïtat de la variància
 
-http://www.dummies.com/programming/r/how-to-test-data-normality-in-a-formal-way-in-r/
+Per cada variable, comprovem la seva condició de normalitat mitjançant el test de Shapiro-Wilk [@Lopez:2015].
 
-http://www.cookbook-r.com/Statistical_analysis/Homogeneity_of_variance/
+```{r}
+isnormal<-function(x){
+  alpha<-0.05
+  res<-shapiro.test(x)
+  return (res$p.value >= alpha)
+}
+
+apply(edata,2,isnormal)
+```
+
+Ens trobem que cap de les variables segueix una distribució normal, com ja havíem sospitat per la majoria dels casos a partir dels histogrames observats.
+
+A continuació, comprovem l'homogeneïtat de les variàncies entre els diferents grups que tenim definits per la qualificació que han rebut les observacions. Per la falta de normalitat que hem observat, aplicarem el test de Fligner-Killeen [@cookbookr].
+
+Abans de procedir, un detall. La variable *quality* és una variable numèrica definida entre [0,10], però hem observat que en la nostra mostra prèn només valors discrets. És possible tractar-la com una variable qualitativa amb un numero finit de categories sense haver de fer cap transformació, de manera que és útil per fer alguns dels anàlisis que posteriorment descriurem. Tanmateix, recuperarem la seva representació numèrica per fer la regressió. 
+
+```{r}
+edata$quality<-factor(as.character(edata$quality))
+
+a<-fligner.test( alcohol ~ quality, data=edata )
+homoscedasticitat<-function(x){
+  alpha<-0.05
+  res<-fligner.test(x)
+  return (res$p.value >= alpha)
+}
+```
+
+
+http://www.dummies.com/programming/r/how-to-test-data-normality-in-a-formal-way-in-r/
 
 ## Correlació entre variables
 
