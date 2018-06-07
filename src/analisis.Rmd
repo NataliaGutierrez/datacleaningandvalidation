@@ -17,6 +17,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 library(lattice)
 library(VIM)
+library(reshape2)
+library(Hmisc)
+library(dplyr)
+library(stats)
 ```
 
 # Descripció del dataset
@@ -73,7 +77,7 @@ Excepte *quality*, que com hem vist és la variable objectiu en el nostre estudi
 ## Tractament de zeros o elements buits
 
 ```{r}
-sapply(idata, class)
+kable(sapply(idata, class))
 ```
 
 Podem comprovar que totes les variables carregades del *CSV* s'han reconegut com a numèriques (o integer). Això vol dir que no hi ha cap valor de tipus caràcter que s'hagi establert com a centinela per indicar element buit, perque llavors s'hauria fixat el tipus de dades com factor. També podriem haver arribat a aquesta mateixa conclusió directament observant el resum que vam mostrar anteriorment: en totes les variables es mostra un resum format per mitja i el sumari dels cinc números de Tukey, propi de les dades del tipus numèric. 
@@ -241,18 +245,28 @@ odata<-kNN(idata,imp_var=FALSE)
 
 ## Selecció dels grups de dades
 
-Inicialment, seleccionem totes les variables per la nostra anàlisis de dades. No obstant, pot ser que en alguna fase de l'anàlisi es descarti alguna d'elles per no ser significativa per al model de predicció final.
+Inicialment, seleccionem totes les variables per la nostra anàlisis de dades. No obstant, pot ser que en alguna fase de l'anàlisi es descarti alguna d'elles per no ser significativa per al model de predicció final. Tanmateix, hem vist que aquestes variables tenen uns rangs de valors molt heterogenis; sobre tot destaca el cas extrem de *total.sulfur.dioxide*, com podem veure en la següent taula.
+
+```{r}
+kable(t(rbind(sapply(colnames(odata),function(x) fivenum(odata[,x])))),
+      col.names=c("Min","1Q","Median","3Q","Max"),align='c',digits=2)
+```
+
+Aquesta diferència de rangs pot arribar a ser perjudicial per la regressió que volem realitzar, ja que les variables amb valors més grans tindran més impacte que la resta alhora de construir el model. Per evitar aquest efecte, apliquem estandardització i així corregim les diferències de rangs normalitzant-los mantenint les distribucions.
 
 Per altra banda, formem dos conjunts de dades: un conjunt d'entrenament per construir el model de regressió, i un conjunt de prova per avaluar-lo. Considerem reservar el 20% de les dades per la fase d'avaluació i fem una extracció aleatoria per obtenir unes mostres representatives de la població mantenint les distribucions de les variables.
 
 ```{r}
+odata[,-12]<-scale(odata[,-12])
+
 set.seed(2018)
 in_train <- sample(1:nrow(odata), size = round(nrow(odata)*0.8))
 
 edata<-odata[in_train,]
 tdata<-odata[-in_train,]
-```
 
+write.csv(odata, file = "../data/winequality-red_clean.csv")
+```
 
 ## Comprovació de la normalitat i homogeneïtat de la variància
 
@@ -270,14 +284,14 @@ isnormal<-function(x){
   return (res$p.value >= alpha)
 }
 # Apliquem el test de normalitat a cadascuna de les variables
-apply(edata,2,isnormal)
+kable(apply(edata,2,isnormal))
 ```
 
 Ens trobem que cap de les variables segueix una distribució normal, com ja havíem sospitat per la majoria dels casos a partir dels histogrames observats.
 
 A continuació, comprovem l'homogeneïtat de les variàncies entre els diferents grups que tenim definits per la qualificació que han rebut les observacions. Per la falta de normalitat que hem observat, aplicarem el test de Fligner-Killeen [@cookbookr].
 
-Abans de procedir, un detall. La variable *quality* és una variable numèrica definida entre [0,10], però hem observat que en la nostra mostra prèn només valors discrets. És possible tractar-la com una variable qualitativa amb un numero finit de categories sense haver de fer cap transformació, de manera que és útil per fer alguns dels anàlisis que posteriorment descriurem. Tanmateix, recuperarem la seva representació numèrica per fer la regressió.
+Abans de procedir, un detall. La variable *quality* és una variable numèrica definida entre [0,10], però hem observat que en la nostra mostra prèn només valors discrets. És possible tractar-la com una variable qualitativa amb un numero finit de categories, útil per fer alguns dels anàlisis que posteriorment descriurem. Tanmateix, recuperarem la seva representació numèrica per fer la regressió.
 
 En el test en qüestió es planteja per cadascuna de les variables la hipòtesi nul·la $H_0$: homogeneïtat de variàncies contra la hipòtesi alternativa $H_A$: heterogeneïtat de variàncies. Si obtenim un p-valor més gran que el nivell de significació que imposem de 0.05, acceptem la hipòtesi nul·la, i per tant, podem concloure que hi ha homogeneïtat de variàncies. En canvi, si surt un valor més petit, la rebutgem a favor de la hipòtesi alternativa i concluïm que hi ha heterogeneïtat de variàncies.
 
@@ -308,29 +322,157 @@ homoscedasticitat<-function(data,mifac){
 # Avaluem el nostre conjunt de dades
 res<-homoscedasticitat(edata,"quality")
 # Mostrem les variable que sí presenten homogeneïtat
-names(which(res==TRUE))
+kable(names(which(res==TRUE)),col.names = "Homoscedasticitat en:")
 ```
 
-Obtenim que només 4 variables presenten homogeneïtat de variància respecte *quality*.
+Obtenim que només 3 variables presenten homogeneïtat de variància respecte *quality*.
 
 ## Correlació entre variables
 
-Ja que les variables no presenten normalitat, fem servir el mètode no paramètric de Spearman [@Dalgaard].
+Per la regressió que volem realitzar ens plantegem trobar el conjunt de variables regressives que són útils i necessàries per aquest propòsit entre les que disposem. Per això, una anàlisi que podem fer és avaluar la correlació entre elles per evitar redundància. Ja que les variables no presenten normalitat, fem servir el mètode no paramètric de Spearman [@Dalgaard:2008].
 
 ```{r}
 
+d <- edata[,1:11]
+vars<-colnames(d)
+cormatrix = rcorr(as.matrix(d), type='spearman')
+cordata = melt(cormatrix$r)
+cordata$Var2<-factor(as.character(cordata$Var2),levels=rev(vars))
+
+txtsize <- par('din')[2] / 2
+rhos<-0.01*as.numeric(as.integer(cordata$value*100))
+
+cordata$strike = ""
+cordata$strike[cormatrix$P > 0.05] = "X"
+
+ggplot(cordata, aes(x=Var1, y=Var2, fill=value)) + 
+  theme(axis.text.x = element_text(angle=45, hjust=TRUE)) +
+  geom_tile() + xlab("") + ylab("") +
+  geom_text(label=rhos, size=txtsize) +
+  geom_text(label=cordata$strike, size=txtsize * 4, color="red", alpha=0.4)
 ```
-http://proven-inconclusive.com/blog/spearman_correlation_heat_map_with_correlation_coefficient_and_significance_in_r.html
 
-## Diferències significatives en les variables segons la qualitat del vi
+Fixarem un umbral de $|\rho|>0.7$ per considerar que dues variables estan prou correlades. En aquestes condicions resulta que el parell *fixed.acidity* - *pH* estan correlades negativament i *free.sulfur.dioxide* - *total.sulfur.dioxide* positivament. Descartem *fixed.acidity* i *free.sulfur.dioxide* del nostre conjunt de variables regressives. 
 
-## Proves estadístiques
+```{r}
+edata<-select(edata,-fixed.acidity,-free.sulfur.dioxide)
+```
 
-(Regressió lineal multivariant)
+## Diferències significatives entre els vins de diferent qualitat
 
-# Representació dels resultats
+Per acabar de determinar el conjunt de variables regressives, ens hem de plantejar que aquestes han de presentar diferències significatives segons la variable que volem explicar, és a dir, la qualitat. Per poder determinar-ho, realitzem una anàlisi de variància per cadascuna de les variables. Ja que ni tan sols segueixen una distribució normal apliquem el test no paramètric de Kruskal-Wallis [@Lopez:2015].
+
+```{r}
+# Funció per testejar si hi ha homogeneïtat de variables en un 
+# dataset segons una variable categòrica
+differentpergroup<-function(data,mifac){
+  # nivell de significació
+  alpha<-0.05
+  results<-list()
+  # Loop de variables
+  for (field in colnames(data)){
+    # Saltem la variable categòrica
+    if (field ==mifac)
+      next
+    # Construïm la fòrmula que necessita la comanda 
+    fmla<-as.formula(paste(field,"~",mifac))
+    # Apliquem el test
+    res<-kruskal.test(fmla,data=edata)
+    # Avaluem el p-valor resultant
+    results[field]<-(res$p.value < alpha)
+  }
+  return (results)
+}
+# Avaluem el nostre conjunt de dades
+res<-differentpergroup(edata,"quality")
+# Mostrem les variable que si son diferents per quality
+names(which(res==TRUE))
+```
+
+Obtenim que totes les variables són significativament diferents depenent de la qualificació excepte *residual.sugar*. Així que aquesta no aportarà informació per la regressió i per tant podem descartar-la.
+
+```{r}
+edata<-select(edata,-residual.sugar)
+```
+
+
+## Regressió lineal múltiple
+
+Una vegada que hem construït el conjunt de dades descartant les variables que no aportarien informació al nostre model, ens plantegem trobar un model de predicció de la qualitat del vi a partir d'aquest.
+
+Amb aquest propòsit, primer visualitzem les distribucions de les variables per qualificació de qualitat.
+
+```{r}
+dfmelt<-melt(edata,measure.vars=1:8)
+ggplot(dfmelt, aes(x=quality, y=value,fill=variable))+
+  geom_boxplot()+
+  facet_grid(.~variable)+
+  labs(x="quality")+
+  theme(axis.text.x=element_text(angle=0, vjust=0.4,hjust=1))
+
+```
+
+Si ens fixem en les medianes de les variables dels diagrames de caixa observem que no hi ha una dependència lineal amb la qualitat, i sembla que una relació més precisa seria polinòmica, però de les variables explicatives amb l'explicada, no a l'inrevés. Així que decidim fer servir aquesta aproximació i apliquem regressió múltiple lineal de primer ordre [@Gibergans:2018].
+
+```{r}
+# Recuperem la variable independent en format numèric
+edata$quality<-as.numeric(as.character(edata$quality))
+
+# Construïm la fòrmula 
+predictors<-colnames(edata)[1:8]
+fmla<-as.formula(paste("quality","~",paste(predictors,collapse="+")))
+
+# Construïm el model lineal
+model<-lm(formula=fmla, edata)
+```
+
+Obtenim un coeficient de determinació de tan sols $R^2=$ `r summary(model)$adj.r.squared`; és a dir, el model només explica el 37.3% de la variabilitat de *quality* i per tant la bondat de l'ajust és a priori molt pobra.
+
+Però recordem la particularitat dels valors discrets que té *quality* mentres que hem assumit un rang de valors continus per la variable explicada: són puntuacions arrodonides dins del rang especificat. Anem a avaluar les prediccions que realitza sobre el mateix conjunt de dades si quantifiquem de la mateixa manera els resultats obtinguts del model.
+
+```{r}
+prediccio<-round(predict(model,edata))
+sum(edata$quality==prediccio)/nrow(edata)
+```
+
+Tenim que el 59.2 % de les prediccions de la qualitat del vi sobre el conjunt d'entrenament són correctes.
+
+# Resultats
+
+En aquest punt, avaluem el model que hem obtingut sobre el conjunt de prova considerant també en aquest cas l'arrodoniment de les qualificacions.
+
+```{r}
+tdata$prediccio<-round(predict(model,tdata))
+sum(tdata$quality==tdata$prediccio)/nrow(tdata)
+```
+Obtenim una proporció similar de prediccions correctes: 60.6%. En la següent gràfica podem observar la relació de les qualificacions predites en relació a les reals.
+
+```{r}
+ggplot(tdata,aes(x=quality,y=prediccio)) + geom_count(aes(color=..n..))
+```
+
+
+No obstant, aquesta avaluació és sobre predir la qualificació exacta dels vins en qüestió. Suposem que podem relaxar l'exactitud d'aquestes puntuacions en una categoritzacó més qualitativa simplificant a una classificació binaria: distingim un bon vi d'un de dolent a partir d'una puntuació de 6. Veiem que passa en aquest cas.
+
+```{r}
+# Construïm les noves variables
+tdata$realbo<-"dolent"
+tdata$realbo[tdata$quality >=6]<-"bo"
+tdata$realbo<-factor(tdata$realbo)
+tdata$predbo<-"dolent"
+tdata$predbo[tdata$prediccio >=6]<-"bo"
+tdata$predbo<-factor(tdata$predbo)
+# Mostrem la matriu de confusió
+table(real=tdata$realbo,predit=tdata$predbo)
+```
+
+En la matriu de confusió observem que obtenim una exactitud del 76.9%, amb un ràtio de falsos positius del 29.9% i un ràtio de falsos negatius del 17.3%.
 
 # Conclusions
+
+En aquesta anàlisi s'ha plantejat la possibilitat de poder predir la qualitat del vi des del punt de vista sensorial fent servir les seves propietats fisicoquímiques, i per aquest propòsit el mètode escollit ha sigut una regressió múltiple lineal.
+
+Ha resultat que el model trobat només prediu al voltant del 60% de les puntuacions de la mostra, per tant no es pot garantir la qualificació que tindrà un vi a partir de les seves propietats amb aquest tipus de model. 
 
 # References
 
