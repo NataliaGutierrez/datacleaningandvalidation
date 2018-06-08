@@ -25,7 +25,7 @@ library(stats)
 
 # Descripció del dataset
 
-El conjunt de dades en qüestió té relació amb la variant de vi negre portuguès "Vinho Verde" i ha sigut extret directament de *Kaggle* (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009). Està constituït per 1599 registres amb 12 variables, de les quals 11 fan referència a propietats fisicoquímiques i una a la valoració sensorial de la qualitat. Aquestes són [@Cortez:2009][@Atenea:2012]:
+El conjunt de dades en qüestió té relació amb la variant de vi negre portuguès "Vinho Verde" i ha sigut extret directament de *Kaggle* (https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009). Està constituït per 1599 registres amb 12 variables, de les quals 11 fan referència a propietats fisicoquímiques i una a la valoració sensorial de la qualitat. Aquestes són [@Cortez:2009 , @Atenea:2012]:
 
 * **fixed acidity**: és l'acidesa d'un vi relativa a la suma de la quantitat d'àcids fixos que es troben en la seva composició, majoritàriament el tartàric. Una quantitat òptima és de 7.5 gr/litre [gr/l].
 
@@ -61,7 +61,7 @@ Aquest conjunt de dades constitueix una mostra de vins de denominació d'origen 
 
 # Integració i selecció de les dades d'interès a analitzar
 
-Les dades que disposem estan ja integrades en un únic fitxer en format *CSV*. Per procedir amb la neteja i anàlisi de les dades, les carreguem amb la funció `read.csv` de manera que les tindrem totes elles incloses en un dataframe.
+Les dades que disposem estan ja integrades en un únic fitxer en format `csv`. Per procedir amb la neteja i anàlisi de les dades, les carreguem amb la funció `read.csv` de manera que les tindrem totes elles incloses en un dataframe.
 
 ```{r}
 idata <- read.csv("../data/winequality-red.csv",header=TRUE)
@@ -80,9 +80,9 @@ Excepte *quality*, que com hem vist és la variable objectiu en el nostre estudi
 kable(sapply(idata, class))
 ```
 
-Podem comprovar que totes les variables carregades del *CSV* s'han reconegut com a numèriques (o integer). Això vol dir que no hi ha cap valor de tipus caràcter que s'hagi establert com a centinela per indicar element buit, perque llavors s'hauria fixat el tipus de dades com factor. També podriem haver arribat a aquesta mateixa conclusió directament observant el resum que vam mostrar anteriorment: en totes les variables es mostra un resum format per mitja i el sumari dels cinc números de Tukey, propi de les dades del tipus numèric. 
+Podem comprovar que totes les variables carregades del `csv` s'han reconegut com a numèriques (o integer). Això vol dir que no hi ha cap valor de tipus caràcter que s'hagi establert com a centinela per indicar element buit, perque llavors s'hauria fixat el tipus de dades com factor. També podriem haver arribat a aquesta mateixa conclusió directament observant el resum que vam mostrar anteriorment: en totes les variables es mostra un resum format per mitja i el sumari dels cinc números de Tukey, propi de les dades del tipus numèric. 
 
-Per altra banda, si els elements buits s'haguèssin indicat amb espais buits ("") en el fitxer *CSV*, s'haurien traduït com "NA" (valors perduts) i aquests estarien registrats en el sumari anterior. Tampoc és el cas.
+Per altra banda, si els elements buits s'haguèssin indicat amb espais buits ("") en el fitxer `csv`, s'haurien traduït com "NA" (valors perduts) i aquests estarien registrats en el sumari anterior. Tampoc és el cas.
 
 Per últim, hi ha la possibilitat que s'haguès fixat com a centinela el zero o algun valor sense sentit com podria ser en aquests atributs un número negatiu. En el sumari observem que els rangs dinàmics de les variables són inicialment coherents i només *citric.acid* conté zeros. A continuació mostrem l'histograma d'aquesta variable, on podem comprovar que aquest zeros no semblen ser valors extrems. Tanmateix, és factible que un vi tingui una concentració d'àcid cítric de 0 g/l [@Catania:2007], així que descartem que aquests zeros signifiquin ausència de valor.
 
@@ -126,7 +126,7 @@ Anàlogament al cas de l'acidesa fixa, considerem aquests outliers propis de la 
 boxplot.stats(idata$citric.acid)$out
 ```
 
-En l'histograma representat en l'apartat de *Tractament de zeros* comprovem que la distribució es concentra en els valors esperats per la concentració d'àcid cítric inclosos en el rang [0.1,0.3] gr/l. Tanmateix es veu una cua que s'allarga cap a valors més alts de manera natural, però el valor detectat com outlier no s'oberva integrat en aquesta cua. Podria ser un valor atípic propi de la dsitribució, però la seva localització aïllada ens fa sospitar que no sigui legítim. El marquem com valor perdut per ser tractat posteriorment.
+En l'histograma representat en l'apartat de "Tractament de zeros" comprovem que la distribució es concentra en els valors esperats per la concentració d'àcid cítric inclosos en el rang [0.1,0.3] gr/l. Tanmateix es veu una cua que s'allarga cap a valors més alts de manera natural, però no s'oberva el valor detectat com outlier integrat en aquesta cua. Podria ser un valor atípic propi de la distribució, però la seva localització aïllada ens fa sospitar que no sigui legítim. El marquem com valor perdut per ser tractat posteriorment.
 
 ```{r}
 idata$citric.acid[which(idata$citric.acid==max(idata$citric.acid))] <- NA
@@ -139,7 +139,7 @@ length(boxplot.stats(idata$residual.sugar)$out)
 histogram(idata$residual.sugar,nint=30,col='forestgreen')
 ```
 
-En el cas de *residual sugar* ens trobem inicialment amb un número gens despreciable d'outliers: 155. En l'histograma es veuen com valors molt allunyats de la resta de observacions, i per tant són candidats a considerar-los valors atípics contaminants i ser tractats com a tal. Però tal com vam descriure en el primer apartat, el vi pot tenir concentracions de sucre molt divers, trobant concentracions fins a 18 g/l pel tipus semisec. És a dir, els valors que tenim aqui com candidats a valors extrems il·legítims són valors totalment pausibles. Que apareguin en la distribució com outliers pot ser degut a que aquesta mostra pertany a la població de vins d'una denominació d'origen específica, de la qual probablement la producció s'especialitza més en vins més secs. Llavors concluïm que aquests valors atípics són propis de la distribució de la variable.
+En el cas de *residual sugar* ens trobem inicialment amb un número gens despreciable d'outliers: 155. En l'histograma es veuen com valors molt allunyats de la resta de observacions, i per tant són candidats a considerar-los valors atípics contaminants i ser tractats com a tal. Però com vam descriure en el primer apartat, el vi pot tenir concentracions de sucre molt divers, trobant concentracions fins a 18 g/l pel tipus semisec. És a dir, els valors que tenim aqui com candidats a valors extrems il·legítims són valors totalment pausibles. Que apareguin en la distribució com outliers pot ser degut a que aquesta mostra pertany a la població de vins d'una denominació d'origen específica, de la qual probablement la producció s'especialitza més en vins més secs. Llavors concluïm que aquests valors atípics són propis de la distribució de la variable.
 
 **chlorides**
 
@@ -202,7 +202,7 @@ boxplot.stats(idata$sulphates)$out
 histogram(idata$sulphates,nint=30,col='forestgreen')
 ```
 
-*sulphates* presenta una cua en la distribució que s'allunya a valors alts. Els primers valors mostren continuïtat en l'histograma, però hi ha alguns >1.5 que són sospitosos. La quantitat de sulfats en vins normals és de l'ordre de 0.6-0.7 g/l, arribant a ser 2 g/l. en vins envellits [@Enrique]. Però els de D.O. *Vinho Verde* es caracteritzen per ser joves [@wikiVinhoVerde]; per tant, es confirma que aquests valors són probablement contaminants. Considerarem valors perduts a partir de 1.5.
+La variable *sulphates* presenta una cua en la distribució que s'allunya a valors alts. Els primers valors mostren continuïtat en l'histograma, però hi ha alguns >1.5 que són sospitosos. La quantitat de sulfats en vins normals és de l'ordre de 0.6-0.7 g/l, arribant a ser 2 g/l. en vins envellits [@Enrique]. Però els de D.O. *Vinho Verde* es caracteritzen per ser joves [@wikiVinhoVerde]; per tant, es confirma que aquests valors són probablement contaminants. Considerarem valors perduts a partir de 1.5.
 
 ```{r}
 idata$sulphates[which(idata$sulphates > 1.5)] <- NA
@@ -219,12 +219,16 @@ Es podrien considerar els últims valors de la cua que presenta la distribucíó
 
 **quality**
 
-Finalment, pel que fa a la variable de qualitat, tots els valors estan dins del rang com vam veure en el sumari de l'apartat d' *Integració*, així que no hi ha motius per considerar que hi hagin valors atípics.
+Finalment, pel que fa a la variable de qualitat, tots els valors estan dins del rang com vam veure en el sumari de l'apartat de "Integració", així que no hi ha motius per considerar que hi hagin valors atípics.
 
+** Tractament de valors perduts generats **
 
 ```{r}
+# Numero d'outliers per observació
 nacount<-apply(idata, 1, function(x) sum(is.na(x)))
+# Número total de outliers
 sum(nacount)
+# Número màxim d'outliers per observació.
 max(nacount)
 ```
 
@@ -245,7 +249,7 @@ odata<-kNN(idata,imp_var=FALSE)
 
 ## Selecció dels grups de dades
 
-Inicialment, seleccionem totes les variables per la nostra anàlisis de dades. No obstant, pot ser que en alguna fase de l'anàlisi es descarti alguna d'elles per no ser significativa per al model de predicció final. Tanmateix, hem vist que aquestes variables tenen uns rangs de valors molt heterogenis; sobre tot destaca el cas extrem de *total.sulfur.dioxide*, com podem veure en la següent taula.
+Inicialment, seleccionem totes les variables per la nostra anàlisi de dades. No obstant, pot ser que en alguna fase es descarti alguna d'elles per no ser significativa per al model de predicció final. Tanmateix, hem vist que aquestes variables tenen uns rangs de valors molt heterogenis; sobre tot destaca el cas extrem de *total.sulfur.dioxide*, com podem veure en la següent taula.
 
 ```{r}
 kable(t(rbind(sapply(colnames(odata),function(x) fivenum(odata[,x])))),
@@ -254,17 +258,20 @@ kable(t(rbind(sapply(colnames(odata),function(x) fivenum(odata[,x])))),
 
 Aquesta diferència de rangs pot arribar a ser perjudicial per la regressió que volem realitzar, ja que les variables amb valors més grans tindran més impacte que la resta alhora de construir el model. Per evitar aquest efecte, apliquem estandardització i així corregim les diferències de rangs normalitzant-los mantenint les distribucions.
 
-Per altra banda, formem dos conjunts de dades: un conjunt d'entrenament per construir el model de regressió, i un conjunt de prova per avaluar-lo. Considerem reservar el 20% de les dades per la fase d'avaluació i fem una extracció aleatoria per obtenir unes mostres representatives de la població mantenint les distribucions de les variables.
+Per altra banda, formem dos conjunts de dades: un conjunt d'entrenament per construir el model de regressió, i un conjunt de prova per avaluar-lo. Considerem reservar el 20% de les dades per la fase d'avaluació i fem una extracció aleatòria per obtenir unes mostres representatives de la població respectant les distribucions de les variables.
 
 ```{r}
+# Estandardització de les variables excepte quality
 odata[,-12]<-scale(odata[,-12])
 
+# Construïm el set d'entrenament i el set de prova
 set.seed(2018)
 in_train <- sample(1:nrow(odata), size = round(nrow(odata)*0.8))
 
 edata<-odata[in_train,]
 tdata<-odata[-in_train,]
 
+# Generem un fitxer amb les dades que farem servir en l'anàlisi
 write.csv(odata, file = "../data/winequality-red_clean.csv")
 ```
 
@@ -287,7 +294,7 @@ isnormal<-function(x){
 kable(apply(edata,2,isnormal))
 ```
 
-Ens trobem que cap de les variables segueix una distribució normal, com ja havíem sospitat per la majoria dels casos a partir dels histogrames observats.
+Ens trobem que cap de les variables segueix una distribució normal, com ja havíem sospitat per la majoria degut als seus histogrames.
 
 A continuació, comprovem l'homogeneïtat de les variàncies entre els diferents grups que tenim definits per la qualificació que han rebut les observacions. Per la falta de normalitat que hem observat, aplicarem el test de Fligner-Killeen [@cookbookr].
 
@@ -331,20 +338,25 @@ Obtenim que només 3 variables presenten homogeneïtat de variància respecte *q
 
 Per la regressió que volem realitzar ens plantegem trobar el conjunt de variables regressives que són útils i necessàries per aquest propòsit entre les que disposem. Per això, una anàlisi que podem fer és avaluar la correlació entre elles per evitar redundància. Ja que les variables no presenten normalitat, fem servir el mètode no paramètric de Spearman [@Dalgaard:2008].
 
-```{r}
+A continuació, mostrem la matriu de correlació que obtenim en un heatmap, incloent-hi els valors numèrics. A més a més, s'han marcat amb una X vermella els casos en els que la $\rho$ obtinguda no és estadísticament significativa (s'ha fixat un nivell de significació de 0.05.
 
-d <- edata[,1:11]
-vars<-colnames(d)
-cormatrix = rcorr(as.matrix(d), type='spearman')
+```{r}
+# Calculem la matriu de correlació per les variables regressives
+vars<-colnames(edata)[1:11]
+cormatrix = rcorr(as.matrix(edata[,1:11]), type='spearman')
+# preparem la matriu de rhos per poder visualitzar-la
 cordata = melt(cormatrix$r)
+# Reordenem les categories del factor on hi ha els noms de les variables,
+# així la matriu es veurà amb la diagonal principal ben posicionada.
 cordata$Var2<-factor(as.character(cordata$Var2),levels=rev(vars))
 
 txtsize <- par('din')[2] / 2
+# Aproximem els valors de rho per poder visualitzar-los
 rhos<-0.01*as.numeric(as.integer(cordata$value*100))
-
+# Marcar amb X els constrasts que no són siginificatius
 cordata$strike = ""
 cordata$strike[cormatrix$P > 0.05] = "X"
-
+# Plotegem la matriu en un heatmap
 ggplot(cordata, aes(x=Var1, y=Var2, fill=value)) + 
   theme(axis.text.x = element_text(angle=45, hjust=TRUE)) +
   geom_tile() + xlab("") + ylab("") +
@@ -352,7 +364,7 @@ ggplot(cordata, aes(x=Var1, y=Var2, fill=value)) +
   geom_text(label=cordata$strike, size=txtsize * 4, color="red", alpha=0.4)
 ```
 
-Fixarem un umbral de $|\rho|>0.7$ per considerar que dues variables estan prou correlades. En aquestes condicions resulta que el parell *fixed.acidity* - *pH* estan correlades negativament i *free.sulfur.dioxide* - *total.sulfur.dioxide* positivament. Descartem *fixed.acidity* i *free.sulfur.dioxide* del nostre conjunt de variables regressives. 
+Fixem un umbral de $|\rho|>0.7$ per considerar que dues variables estan prou correlades. En aquestes condicions resulta que el parell *fixed.acidity* - *pH* estan correlades negativament i *free.sulfur.dioxide* - *total.sulfur.dioxide* positivament. Descartem *fixed.acidity* i *free.sulfur.dioxide* del nostre conjunt de variables regressives. 
 
 ```{r}
 edata<-select(edata,-fixed.acidity,-free.sulfur.dioxide)
@@ -389,14 +401,14 @@ res<-differentpergroup(edata,"quality")
 names(which(res==TRUE))
 ```
 
-Obtenim que totes les variables són significativament diferents depenent de la qualificació excepte *residual.sugar*. Així que aquesta no aportarà informació per la regressió i per tant podem descartar-la.
+Obtenim que totes les variables són significativament diferents depenent de la qualificació excepte *residual.sugar*. Així que aquesta no aporta informació per la regressió i per tant podem descartar-la.
 
 ```{r}
 edata<-select(edata,-residual.sugar)
 ```
 
 
-## Regressió lineal múltiple
+## Predicció de la qualitat del vi
 
 Una vegada que hem construït el conjunt de dades descartant les variables que no aportarien informació al nostre model, ens plantegem trobar un model de predicció de la qualitat del vi a partir d'aquest.
 
@@ -452,7 +464,7 @@ ggplot(tdata,aes(x=quality,y=prediccio)) + geom_count(aes(color=..n..))
 ```
 
 
-No obstant, aquesta avaluació és sobre predir la qualificació exacta dels vins en qüestió. Suposem que podem relaxar l'exactitud d'aquestes puntuacions en una categoritzacó més qualitativa simplificant a una classificació binaria: distingim un bon vi d'un de dolent a partir d'una puntuació de 6. Veiem que passa en aquest cas.
+No obstant, s'ha avaluat la capacitat de predicció de la qualificació exacta dels vins en qüestió. Suposem que podem relaxar l'exactitud d'aquestes puntuacions en una categoritzacó més qualitativa simplificant a una classificació binaria: distingim un bon vi d'un de dolent a partir d'una puntuació de 6. Veiem que passa en aquest cas.
 
 ```{r}
 # Construïm les noves variables
@@ -472,7 +484,9 @@ En la matriu de confusió observem que obtenim una exactitud del 76.9%, amb un r
 
 En aquesta anàlisi s'ha plantejat la possibilitat de poder predir la qualitat del vi des del punt de vista sensorial fent servir les seves propietats fisicoquímiques, i per aquest propòsit el mètode escollit ha sigut una regressió múltiple lineal.
 
-Ha resultat que el model trobat només prediu al voltant del 60% de les puntuacions de la mostra, per tant no es pot garantir la qualificació que tindrà un vi a partir de les seves propietats amb aquest tipus de model. 
+Per escollir les variables regressives s'ha avaluat la correlació de les variables i les diferències siginificatives que presentaven respecte la qualitat del vi. Tot això, prèviament s'ha netejat les dades tractant els valors perduts i els outliers, si ha sigut necessari.
+
+Hem pogut comprovar que un model regressiu lineal no és adequat per predir la qualitat del vi. Ha resultat que el model trobat només prediu al voltant del 60% de les puntuacions de la mostra, per tant no es pot garantir la qualificació que tindrà un vi a partir de les seves propietats amb aquest tipus de model. No obstant, es pot valorar positivament la possibilitat d'utilitzar les variables considerades per distingir si el vi serà bó o dolent en linies generals, amb una probabilitat de fals positiu del 30%.
 
 # References
 

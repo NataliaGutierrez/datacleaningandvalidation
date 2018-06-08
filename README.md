@@ -14,5 +14,5 @@ La pràctica s'ha realitzat de manera individual per Natalia Gutiérrez.
 
 * doc/analisis.pdf: informe de la pràctica.
 
-* data/winequality-red.csv: conjunt de dades d'entrada del que s'ha realitzat l'anàlisi.
-* data/winequality-red_clean.csv: conjunt de dades obtingut després de la neteja.
+* data/winequality-red.csv: conjunt de dades d'entrada.
+* data/winequality-red_clean.csv: conjunt de dades obtingut després de la neteja i sobre els quals s'ha fet l'anàlisi.
