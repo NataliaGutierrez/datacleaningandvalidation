@@ -90,6 +90,7 @@ Per últim, hi ha la possibilitat que s'haguès fixat com a centinela el zero o 
 histogram(idata$citric.acid,nint=40,col='forestgreen')
 ```
 
+En el cas que haguèssim tingut elements buits, els hauríem de tractar. Les possibles opcions que hauriem tingut estan explicades al final del següent subapartat sobre "Valors extrems", on tractem els outliers identificats com contaminants, els quals finalment marquem com valors perduts.
 
 ## Valors extrems
 
